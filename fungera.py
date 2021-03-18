@@ -8,6 +8,8 @@ import modules.common as c
 import modules.memory as m
 import modules.queue as q
 import modules.organism as o
+import math
+import json
 
 
 class Fungera:
@@ -31,6 +33,9 @@ class Fungera:
         self.update_info()
         if c.config['snapshot_to_load'] != 'new':
             self.load_state()
+
+        self.information_per_site_tables = []
+        self.entropy = 0.0
 
     def run(self):
         try:
@@ -73,6 +78,17 @@ class Fungera:
         info += '[Running]\n' if c.is_running else '[Paused]\n'
         info += 'Cycle      : {}\n'.format(self.cycle)
         info += 'Total      : {}\n'.format(len(q.queue.organisms))
+        if q.queue.organisms:
+            entropy = self.get_entropy_score()
+
+            info += f"Entropy: {entropy}"
+            self.entropy = entropy
+            # print(m.memory.memory_map[first_organism.start[0]: organism_bounds[0],
+            #       first_organism.start[1]: organism_bounds[1]])
+        else:
+            info += "Entropy: 0.0"
+            raise ValueError
+            # info += f'{m.memory.memory_map[organism_bounds]}'
         self.info_window.print(info)
 
     def update_info(self):
@@ -105,8 +121,21 @@ class Fungera:
                 'cycle': self.cycle,
                 'memory': m.memory,
                 'queue': q.queue,
+                'information_per_site': self.information_per_site_tables,
+                'entropy': self.entropy
+            }
+            metrics = {
+                'cycle': self.cycle,
+                'information_per_site': self.information_per_site_tables,
+                'entropy': self.entropy,
+                'number_of_organisms': len(q.queue.organisms)
             }
             pickle.dump(state, f)
+            metrics_file = filename = 'snapshots/{}_cycle_{}.snapshot'.format(
+                c.config['simulation_name'].lower().replace(' ', '_'), self.cycle
+            ) + '2'
+            with open(metrics_file, 'wb') as mf:
+                pickle.dump(metrics, mf)
         if not self.is_minimal or return_to_full:
             self.toogle_minimal()
 
@@ -117,8 +146,8 @@ class Fungera:
             return_to_full = True
         try:
             if (
-                c.config['snapshot_to_load'] == 'last'
-                or c.config['snapshot_to_load'] == 'new'
+                    c.config['snapshot_to_load'] == 'last'
+                    or c.config['snapshot_to_load'] == 'new'
             ):
                 filename = max(glob.glob('snapshots/*'), key=os.path.getctime)
             else:
@@ -147,6 +176,76 @@ class Fungera:
             q.queue.update_all()
         self.cycle += 1
         self.update_info()
+
+    @staticmethod
+    def calculate_entropy(distribution, num_commands):
+        entropy = 0
+        for key in distribution:
+            p = distribution[key]
+            log_p = math.log(p, num_commands)
+            entropy -= p * log_p
+        return entropy
+
+    def get_entropy_score(self):
+        max_table_size = [max(q.queue.organisms, key=lambda x: x.size[0]).size[0],
+                          max(q.queue.organisms, key=lambda x: x.size[1]).size[1]]
+
+        organisms_commands = []
+
+        # Getting command tables
+        for organism in q.queue.organisms:
+            organisms_commands.append(self.get_organism_commands(
+                organism.start,
+                organism.size
+            ))
+
+        # Getting frequencies
+        values_distributions = [[0 for j in range(max_table_size[1])] for i in range(max_table_size[0])]
+        for i in range(max_table_size[0]):
+            for j in range(max_table_size[1]):
+                values = []
+                for commands in organisms_commands:
+                    if i < commands.shape[0] and j < commands.shape[1]:
+                        values.append(commands[i][j])
+                values = {x: values.count(x) / len(values) for x in values}
+                values_distributions[i][j] = values
+
+        per_site_entropy = np.zeros(max_table_size)
+        for i in range(max_table_size[0]):
+            for j in range(max_table_size[1]):
+                per_site_entropy[i, j] = self.calculate_entropy(values_distributions[i][j], len(c.instructions))
+
+        self.information_per_site_tables = 1 - np.array(per_site_entropy)
+        return np.sum(per_site_entropy)
+        # total_entropy = 0
+        # information_tables = []
+        # for organism_commands in organisms_commands:
+        #     entropy = 0
+        #     entropy_table = np.zeros(organism_commands.shape)
+        #     max_entropy_per_site = math.log(len(c.instructions), len(c.instructions))
+        #     information_per_site = max_entropy_per_site - entropy_table
+        #     for i in range(organism_commands.shape[0]):
+        #         for j in range(organism_commands.shape[1]):
+        #             p = values_distributions[i][j][organism_commands[i][j]]
+        #             entropy -= p * math.log(
+        #                 p, len(c.instructions)
+        #             )
+        #             entropy_table[i, j] = -p * math.log(
+        #                 p, len(c.instructions)
+        #             )
+        #
+        #     total_entropy += entropy
+        #     information_tables.append(entropy_table)
+        # information_tables = np.array(information_tables)
+        # self.information_per_site_tables = information_tables
+        # return total_entropy
+
+    @staticmethod
+    def get_organism_commands(start, size):
+        return m.memory.memory_map[
+               start[0]: start[0] + size[0],
+               start[1]: start[1] + size[1],
+               ]
 
     def input_stream(self):
         while True:
@@ -183,6 +282,8 @@ class Fungera:
             elif key == -1 and c.is_running:
                 q.queue.cycle_all()
                 self.make_cycle()
+            elif len(q.queue.organisms) == 0:
+                break
 
 
 if __name__ == '__main__':

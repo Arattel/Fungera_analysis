@@ -10,6 +10,8 @@ class Queue:
 
     def add_organism(self, organism):
         self.organisms.append(organism)
+        # print(self.organisms)
+        # print(self.organisms[0].ip, self.organisms[0].size)
         if self.index is None:
             self.index = 0
             self.organisms[self.index].is_selected = True
@@ -23,6 +25,7 @@ class Queue:
             return self.organisms[0]
 
     def select_next(self):
+        # print(self.organisms[self.index])
         if self.index + 1 < len(self.organisms):
             self.organisms[self.index].is_selected = False
             self.organisms[self.index].update()
@@ -55,6 +58,7 @@ class Queue:
 
     def toogle_minimal(self):
         organisms = self.organisms
+        # print(organisms)
         self.organisms = []
         for organism in organisms:
             organism.toogle()

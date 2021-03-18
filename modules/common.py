@@ -5,6 +5,8 @@ from threading import Thread, Event
 import toml
 import numpy as np
 import modules.window as w
+from conf.config import Config
+from dataclasses import asdict
 
 
 class RepeatedTimer(Thread):
@@ -104,30 +106,38 @@ def init_curses():
 
 
 def load_config():
-    _config = {}
-    for key, value in toml.load('config.toml').items():
-        _config[key] = np.array(value) if isinstance(value, list) else value
-    _config['simulation_name'] = line_args.name
-    _config['snapshot_to_load'] = line_args.state
+    _config = asdict(Config())
+
+    for key in _config:
+        value = _config[key]
+        _config[key] = np.array(value) if isinstance(value, tuple) else value
+
     return _config
 
 
 is_running = False
 
+config = load_config()
+
 parser = argparse.ArgumentParser(
     description='Fungera - two-dimentional artificial life simulator'
 )
-parser.add_argument('--name', default='Simulation 1', help='Simulation name')
+parser.add_argument('--name', default=config['simulation_name'], help='Simulation name')
 parser.add_argument(
-    '--state', default='new', help='State file to load (new/last/filename)'
+    '--state', default='new', help='State file to load (new/last/filename)',
+    # missing='Simulation 1'
+)
+parser.add_argument(
+    '--seed', default='new', help='State file to load (new/last/filename)',
+    # missing='Simulation 1'
 )
 
 line_args = parser.parse_args()
+config['snapshot_to_load'] = line_args.state
+
 
 try:
     screen = init_curses()
 except Exception:
     print('No display found')
     screen = None
-
-config = load_config()

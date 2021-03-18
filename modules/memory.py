@@ -5,10 +5,10 @@ import modules.common as c
 
 class Memory:
     def __init__(
-        self,
-        memory_map=np.full(c.config['memory_size'], '.', dtype=str),
-        allocation_map=np.zeros(c.config['memory_size']),
-        position=c.config['memory_size'] // 2,
+            self,
+            memory_map=np.full(c.config['memory_size'], '.', dtype=str),
+            allocation_map=np.zeros(c.config['memory_size']),
+            position=c.config['memory_size'] // 2,
     ):
         self.memory_map = memory_map
         self.allocation_map = allocation_map
@@ -16,19 +16,19 @@ class Memory:
 
     def allocate(self, address: np.array, size: np.array):
         self.allocation_map[
-            address[0] : address[0] + size[0], address[1] : address[1] + size[1]
+        address[0]: address[0] + size[0], address[1]: address[1] + size[1]
         ] = np.ones(
             self.allocation_map[
-                address[0] : address[0] + size[0], address[1] : address[1] + size[1]
+            address[0]: address[0] + size[0], address[1]: address[1] + size[1]
             ].shape
         )
 
     def deallocate(self, address: np.array, size: np.array):
         self.allocation_map[
-            address[0] : address[0] + size[0], address[1] : address[1] + size[1]
+        address[0]: address[0] + size[0], address[1]: address[1] + size[1]
         ] = np.zeros(
             self.allocation_map[
-                address[0] : address[0] + size[0], address[1] : address[1] + size[1]
+            address[0]: address[0] + size[0], address[1]: address[1] + size[1]
             ].shape
         )
 
@@ -56,8 +56,8 @@ class Memory:
         if (address + size - c.config['memory_size'] > 0).any():
             return None
         allocation_region = self.allocation_map[
-            address[0] : address[0] + size[0], address[1] : address[1] + size[1]
-        ]
+                            address[0]: address[0] + size[0], address[1]: address[1] + size[1]
+                            ]
         return bool(np.count_nonzero(allocation_region))
 
     def cycle(self):
@@ -79,10 +79,10 @@ class Memory:
 
 class MemoryFull(Memory):
     def __init__(
-        self,
-        memory_map=np.full(c.config['memory_size'], '.', dtype=str),
-        allocation_map=np.zeros(c.config['memory_size']),
-        position=c.config['memory_size'] // 2,
+            self,
+            memory_map=np.full(c.config['memory_size'], '.', dtype=str),
+            allocation_map=np.zeros(c.config['memory_size']),
+            position=c.config['memory_size'] // 2,
     ):
         super(MemoryFull, self).__init__(memory_map, allocation_map, position)
         screen_display_size = c.screen.get_size()
@@ -98,7 +98,7 @@ class MemoryFull(Memory):
 
     def load_genome(self, genome: np.array, address: np.array, size: np.array):
         self.memory_map[
-            address[0] : address[0] + size[0], address[1] : address[1] + size[1]
+        address[0]: address[0] + size[0], address[1]: address[1] + size[1]
         ] = genome
         self.update()
 
@@ -109,9 +109,9 @@ class MemoryFull(Memory):
     def update(self, refresh=False):
         buffer = io.BytesIO()
         memory_map_subset = self.memory_map[
-            self.position[0] : self.size[0] + self.position[0],
-            self.position[1] : self.size[1] + self.position[1],
-        ]
+                            self.position[0]: self.size[0] + self.position[0],
+                            self.position[1]: self.size[1] + self.position[1],
+                            ]
         np.savetxt(
             buffer, memory_map_subset, fmt='%s', delimiter='', newline='',
         )
@@ -121,7 +121,7 @@ class MemoryFull(Memory):
     def scroll(self, delta: np.array):
         new_position = self.position + delta
         if (new_position >= 0).all() and (
-            new_position + self.size <= c.config['memory_size']
+                new_position + self.size <= c.config['memory_size']
         ).all():
             self.position += delta
 
