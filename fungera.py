@@ -11,6 +11,17 @@ import modules.organism as o
 import math
 import json
 
+from typing import Dict
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(levelname)s|%(filename)s|%(lineno)s| %(asctime)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    filename='example.log',
+)
+logger = logging.getLogger(__name__)
+
 
 class Fungera:
     def __init__(self):
@@ -81,10 +92,10 @@ class Fungera:
         if q.queue.organisms:
             entropy = self.get_entropy_score()
 
-            info += f"Entropy: {entropy}"
+            info += f"Entropy: {entropy}\n"
             self.entropy = entropy
-            # print(m.memory.memory_map[first_organism.start[0]: organism_bounds[0],
-            #       first_organism.start[1]: organism_bounds[1]])
+            info += f"Commands distribution: {self.get_commands_distribution()}\n"
+            info += f"Organism sizes: {self.get_organism_sizes()}\n"
         else:
             info += "Entropy: 0.0"
             raise ValueError
@@ -117,21 +128,24 @@ class Fungera:
             c.config['simulation_name'].lower().replace(' ', '_'), self.cycle
         )
         with open(filename, 'wb') as f:
-            state = {
-                'cycle': self.cycle,
-                'memory': m.memory,
-                'queue': q.queue,
-                'information_per_site': self.information_per_site_tables,
-                'entropy': self.entropy
-            }
+            # TODO: Uncomment later for dumping both state and metrics
+            # state = {
+            #     'cycle': self.cycle,
+            #     'memory': m.memory,
+            #     'queue': q.queue,
+            #     'information_per_site': self.information_per_site_tables,
+            #     'entropy': self.entropy
+            # }
             metrics = {
                 'cycle': self.cycle,
                 'information_per_site': self.information_per_site_tables,
                 'entropy': self.entropy,
-                'number_of_organisms': len(q.queue.organisms)
+                'number_of_organisms': len(q.queue.organisms),
+                'commands_distribution': self.get_commands_distribution(),
+                'sizes': self.get_organism_sizes()
             }
-            pickle.dump(state, f)
-            metrics_file = filename = 'snapshots/{}_cycle_{}.snapshot'.format(
+            # pickle.dump(state, f)
+            metrics_file = 'snapshots/{}_cycle_{}.snapshot'.format(
                 c.config['simulation_name'].lower().replace(' ', '_'), self.cycle
             ) + '2'
             with open(metrics_file, 'wb') as mf:
@@ -185,6 +199,30 @@ class Fungera:
             log_p = math.log(p, num_commands)
             entropy -= p * log_p
         return entropy
+
+    def get_commands_distribution(self) -> Dict:
+        organisms_commands = []
+        for organism in q.queue.organisms:
+            organism_commands = self.get_organism_commands(
+                organism.start,
+                organism.size
+            )
+
+            organisms_commands.append(organism_commands.flatten())
+        try:
+            organisms_commands = np.concatenate(organisms_commands)
+            commands, counts = np.unique(organisms_commands, return_counts=True)
+            command_counts = dict(zip(commands, counts))
+            return command_counts
+        except ValueError:
+            logger.info(f'{organisms_commands}')
+            raise ValueError
+
+    def get_organism_sizes(self):
+        sizes = []
+        for organism in q.queue.organisms:
+            sizes.append(organism.size)
+        return sizes
 
     def get_entropy_score(self):
         max_table_size = [max(q.queue.organisms, key=lambda x: x.size[0]).size[0],

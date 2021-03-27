@@ -125,17 +125,17 @@ parser = argparse.ArgumentParser(
 parser.add_argument('--name', default=config['simulation_name'], help='Simulation name')
 parser.add_argument(
     '--state', default='new', help='State file to load (new/last/filename)',
-    # missing='Simulation 1'
 )
 parser.add_argument(
-    '--seed', default='new', help='State file to load (new/last/filename)',
-    # missing='Simulation 1'
+    '--seed', type=int, help='Random seed',
+    default=config['random_seed']
 )
 
 line_args = parser.parse_args()
+
 config['snapshot_to_load'] = line_args.state
-
-
+config['random_seed'] = line_args.seed
+config['simulation_name'] = config['simulation_name']
 try:
     screen = init_curses()
 except Exception:
