@@ -7,6 +7,7 @@ import numpy as np
 import modules.window as w
 from conf.config import Config
 from dataclasses import asdict
+import shutil
 
 
 class RepeatedTimer(Thread):
@@ -56,6 +57,7 @@ instructions = {
     '$': [np.array([7, 3]), 'split_child'],
     'S': [np.array([8, 0]), 'push'],
     'P': [np.array([8, 1]), 'pop'],
+    'E': [np.array([9, 0]), 'correct_error']
 }
 
 deltas = {
@@ -76,7 +78,7 @@ colors = {
 
 
 def init_curses():
-    terminal_size = os.get_terminal_size()
+    terminal_size = shutil.get_terminal_size(fallback=(120, 50))
     if terminal_size.columns < 100 or terminal_size.lines < 25:
         print(
             'Terminal size is too small. The terminal size must be at least (100, 25)'
@@ -131,13 +133,20 @@ parser.add_argument(
     default=config['random_seed']
 )
 
+parser.add_argument(
+    '--random_rate', type=int, help='Random rate',
+    default=config['random_rate']
+)
+
 line_args = parser.parse_args()
 
 config['snapshot_to_load'] = line_args.state
 config['random_seed'] = line_args.seed
-config['simulation_name'] = config['simulation_name']
-try:
-    screen = init_curses()
-except Exception:
-    print('No display found')
-    screen = None
+config['simulation_name'] = line_args.name
+config['random_rate'] = line_args.random_rate
+
+# try:
+screen = init_curses()
+# except Exception:
+#     print('No display found')
+#     screen = None

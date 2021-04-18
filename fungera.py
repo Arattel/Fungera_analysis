@@ -28,6 +28,7 @@ class Fungera:
         self.timer = c.RepeatedTimer(
             c.config['autosave_rate'], self.save_state, (True,)
         )
+        # print(c.config['random_seed'], c.config['simulation_name'], c.config['random_rate'])
         np.random.seed(c.config['random_seed'])
         if not os.path.exists('snapshots'):
             os.makedirs('snapshots')
@@ -180,6 +181,7 @@ class Fungera:
             self.update_info_minimal()
 
     def make_cycle(self):
+        m.memory.update(refresh=True)
         if self.cycle % c.config['random_rate'] == 0:
             m.memory.cycle()
         if self.cycle % c.config['cycle_gap'] == 0:
@@ -325,4 +327,5 @@ class Fungera:
 
 
 if __name__ == '__main__':
+    c.is_running = True
     Fungera().run()

@@ -18,22 +18,22 @@ class RegsDict(dict):
 
 class Organism:
     def __init__(
-        self,
-        address: np.array,
-        size: np.array,
-        ip: Optional[np.array] = None,
-        delta: Optional[np.array] = np.array([0, 1]),
-        start: Optional[np.array] = None,
-        regs: Optional[RegsDict] = None,
-        stack: Optional[list] = None,
-        errors: Optional[int] = 0,
-        child_size: Optional[np.array] = np.array([0, 0]),
-        child_start: Optional[np.array] = np.array([0, 0]),
-        is_selected: Optional[bool] = False,
-        children: Optional[int] = 0,
-        reproduction_cycle: Optional[int] = 0,
-        parent: Optional[uuid.UUID] = None,
-        organism_id: Optional[uuid.UUID] = None,
+            self,
+            address: np.array,
+            size: np.array,
+            ip: Optional[np.array] = None,
+            delta: Optional[np.array] = np.array([0, 1]),
+            start: Optional[np.array] = None,
+            regs: Optional[RegsDict] = None,
+            stack: Optional[list] = None,
+            errors: Optional[int] = 0,
+            child_size: Optional[np.array] = np.array([0, 0]),
+            child_start: Optional[np.array] = np.array([0, 0]),
+            is_selected: Optional[bool] = False,
+            children: Optional[int] = 0,
+            reproduction_cycle: Optional[int] = 0,
+            parent: Optional[uuid.UUID] = None,
+            organism_id: Optional[uuid.UUID] = None,
     ):
         # pylint: disable=invalid-name
         self.organism_id = uuid.uuid4() if organism_id is None else organism_id
@@ -209,9 +209,9 @@ class Organism:
         try:
             getattr(self, c.instructions[self.inst()][1])()
             if (
-                c.config['penalize_parasitism']
-                and not m.memory.is_allocated(self.ip)
-                and max(np.abs(self.ip - self.start)) > c.config['penalize_parasitism']
+                    c.config['penalize_parasitism']
+                    and not m.memory.is_allocated(self.ip)
+                    and max(np.abs(self.ip - self.start)) > c.config['penalize_parasitism']
             ):
                 raise ValueError
         except Exception:
@@ -219,8 +219,8 @@ class Organism:
         new_ip = self.ip + self.delta
         self.reproduction_cycle += 1
         if (
-            self.errors > c.config['organism_death_rate']
-            or self.reproduction_cycle > c.config['kill_if_no_child']
+                self.errors > c.config['organism_death_rate']
+                or self.reproduction_cycle > c.config['kill_if_no_child']
         ):
             q.queue.organisms.remove(self)
             self.kill()
@@ -254,22 +254,22 @@ class Organism:
 
 class OrganismFull(Organism):
     def __init__(
-        self,
-        address: np.array,
-        size: np.array,
-        ip: Optional[np.array] = None,
-        delta: Optional[np.array] = np.array([0, 1]),
-        start: Optional[np.array] = None,
-        regs: Optional[RegsDict] = None,
-        stack: Optional[list] = None,
-        errors: Optional[int] = 0,
-        child_size: Optional[np.array] = np.array([0, 0]),
-        child_start: Optional[np.array] = np.array([0, 0]),
-        is_selected: Optional[bool] = False,
-        children: Optional[int] = 0,
-        reproduction_cycle: Optional[int] = 0,
-        parent: Optional[uuid.UUID] = None,
-        organism_id: Optional[uuid.UUID] = None,
+            self,
+            address: np.array,
+            size: np.array,
+            ip: Optional[np.array] = None,
+            delta: Optional[np.array] = np.array([0, 1]),
+            start: Optional[np.array] = None,
+            regs: Optional[RegsDict] = None,
+            stack: Optional[list] = None,
+            errors: Optional[int] = 0,
+            child_size: Optional[np.array] = np.array([0, 0]),
+            child_start: Optional[np.array] = np.array([0, 0]),
+            is_selected: Optional[bool] = False,
+            children: Optional[int] = 0,
+            reproduction_cycle: Optional[int] = 0,
+            parent: Optional[uuid.UUID] = None,
+            organism_id: Optional[uuid.UUID] = None,
     ):
         super(OrganismFull, self).__init__(
             address=address,
@@ -294,29 +294,38 @@ class OrganismFull(Organism):
     def update_window(self, size, start, color):
         new_start = start - m.memory.position
         new_size = size + new_start.clip(max=0)
+
         if (new_size > 0).all() and (m.memory.size - new_start > 0).all():
             m.memory.window.derived(
                 new_start.clip(min=0),
                 np.amin([new_size, m.memory.size - new_start, m.memory.size], axis=0),
             ).background(color)
 
+    def update_window_with_ip(self, size, start, color):
+        self.update_window(size, start, 0)
+        self.update_window(np.array([1, 1]), self.ip, color)
+
     def update_ip(self):
         new_position = self.ip - m.memory.position
         color = c.colors['ip_bold'] if self.is_selected else c.colors['ip']
         if (
-            (new_position >= 0).all()
-            and (m.memory.size - new_position > 0).all()
-            and m.memory.is_allocated(self.ip)
+                (new_position >= 0).all()
+                and (m.memory.size - new_position > 0).all()
+                and m.memory.is_allocated(self.ip)
         ):
-            m.memory.window.derived(new_position, (1, 1)).background(color)
+            m.memory.window.derived(new_position, (1, 1,)).background(0)
 
     def update(self):
         parent_color = (
             c.colors['parent_bold'] if self.is_selected else c.colors['parent']
         )
-        self.update_window(self.size, self.start, parent_color)
+        if self.is_selected:
+            self.update_window_with_ip(self.size, self.start, parent_color)
+        else:
+            self.update_window(self.size, self.start, parent_color)
         child_color = c.colors['child_bold'] if self.is_selected else c.colors['child']
         self.update_window(self.child_size, self.child_start, child_color)
+        # m.memory.update(refresh=True)
         self.update_ip()
 
     def info(self):
@@ -335,7 +344,6 @@ class OrganismFull(Organism):
     def kill(self):
         super(OrganismFull, self).kill()
         self.update()
-        m.memory.update(refresh=True)
 
     def toogle(self):
         Organism(
