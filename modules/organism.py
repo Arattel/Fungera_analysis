@@ -41,6 +41,7 @@ class Organism:
         # pylint: disable=invalid-name
         self.ip = np.array(address) if ip is None and address is not None else ip
         self.delta = delta
+        self.center_flag = False
 
         self.size = np.array(size)
         self.start = (
@@ -183,8 +184,39 @@ class Organism:
         if len(self.stack) < c.config['stack_length']:
             self.stack.append(np.copy(self.regs[self.inst(1)]))
 
+    def correct_error(self):
+        center = self.ip_offset(self.delta)
+        coords_for_voting = [center]
+
+        for x_offset in [-1, 1]:
+            for y_offset in [-1, 1]:
+                coords_for_voting.append(np.array([center[0] + x_offset, center[1] + y_offset]))
+
+        votes = []
+        for voting_coord in coords_for_voting:
+            votes.append(m.memory.inst(voting_coord))
+        mode = max(set(votes), key=votes.count)
+        for voting_coord in coords_for_voting:
+            m.memory.write_inst(voting_coord, c.instructions[mode][0])
+
     def pop(self):
         self.regs[self.inst(1)] = np.copy(self.stack.pop())
+
+    def ip_is_center(self):
+        center = self.ip
+        votes = []
+        coords_for_voting = []
+        for x_offset in [-1, 1]:
+            coords_for_voting.append(np.array([center[0] + x_offset, center[1]]))
+
+        for y_offset in [-1, 1]:
+            coords_for_voting.append(np.array([center[0], center[1] + y_offset]))
+
+        for voting_coord in coords_for_voting:
+            votes.append(m.memory.inst(voting_coord))
+        value_around = set(votes)
+
+        return len(value_around) == 1 and value_around.pop() == 'E'
 
     def split_child(self):
         if not np.array_equal(self.child_size, np.array([0, 0])):
@@ -206,6 +238,9 @@ class Organism:
         self.child_size = np.array([0, 0])
 
     def cycle(self):
+        is_center = self.ip_is_center()
+        if is_center:
+            self.delta *= 3
         try:
             getattr(self, c.instructions[self.inst()][1])()
             if (
@@ -216,6 +251,15 @@ class Organism:
                 raise ValueError
         except Exception:
             self.errors += 1
+        if is_center:
+            self.delta = self.delta // 3
+        if is_center:
+            self.delta *= 2
+            self.center_flag = True
+        else:
+            self.delta = self.delta // 2 if self.center_flag else self.delta
+            self.center_flag = False
+
         new_ip = self.ip + self.delta
         self.reproduction_cycle += 1
         if (
@@ -227,6 +271,7 @@ class Organism:
         if (new_ip < 0).any() or (new_ip - c.config['memory_size'] > 0).any():
             return None
         self.ip = np.copy(new_ip)
+
         return None
 
     def update(self):

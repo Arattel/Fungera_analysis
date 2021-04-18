@@ -39,9 +39,9 @@ class Fungera:
             np.array([0, 0]), c.config['info_display_size'],
         )
         genome_size = self.load_genome_into_memory(
-            'initial.gen', c.config['memory_size'] // 2
+            'cell.gen', address=c.config['memory_size'] // 2
         )
-        o.OrganismFull(c.config['memory_size'] // 2, genome_size)
+        o.OrganismFull(c.config['memory_size'] // 2, genome_size, ip=np.array((451, 450)))
         self.update_info()
         if c.config['snapshot_to_load'] != 'new':
             self.load_state()
@@ -327,5 +327,5 @@ class Fungera:
 
 
 if __name__ == '__main__':
-    c.is_running = True
+    c.is_running = False
     Fungera().run()
