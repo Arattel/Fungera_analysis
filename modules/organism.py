@@ -256,8 +256,8 @@ class Organism:
 
     def split_child(self):
         if not np.array_equal(self.child_size, np.array([0, 0])):
-            m.memory.deallocate(self.child_start, self.child_size)
-            self.__class__(self.child_start, self.child_size, parent=self.organism_id)
+            m.memory.deallocate(self.child_start, self.child_size * 3)
+            self.__class__(self.child_start, self.child_size * 3, parent=self.organism_id)
             self.children += 1
             self.reproduction_cycle = 0
         self.child_size = np.array([0, 0])
