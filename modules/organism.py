@@ -5,6 +5,15 @@ import numpy as np
 import modules.common as c
 import modules.memory as m
 import modules.queue as q
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(levelname)s|%(filename)s|%(lineno)s| %(asctime)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    filename='organism.log',
+)
+logger = logging.getLogger(__name__)
 
 
 class RegsDict(dict):
@@ -34,9 +43,11 @@ class Organism:
             reproduction_cycle: Optional[int] = 0,
             parent: Optional[uuid.UUID] = None,
             organism_id: Optional[uuid.UUID] = None,
+            organism_padding: Optional[np.array] = np.array([1, 1]),
     ):
         # pylint: disable=invalid-name
         self.organism_id = uuid.uuid4() if organism_id is None else organism_id
+        self.organism_padding = organism_padding
         self.parent = parent
         # pylint: disable=invalid-name
         self.ip = np.array(address) if ip is None and address is not None else ip
@@ -84,16 +95,16 @@ class Organism:
         pass
 
     def move_up(self):
-        self.delta = c.deltas['up']
+        self.delta = c.deltas['up'] * abs(max(self.delta.min(), self.delta.max(), key=abs))
 
     def move_down(self):
-        self.delta = c.deltas['down']
+        self.delta = c.deltas['down'] * abs(max(self.delta.min(), self.delta.max(), key=abs))
 
     def move_right(self):
-        self.delta = c.deltas['right']
+        self.delta = c.deltas['right'] * abs(max(self.delta.min(), self.delta.max(), key=abs))
 
     def move_left(self):
-        self.delta = c.deltas['left']
+        self.delta = c.deltas['left'] * abs(max(self.delta.min(), self.delta.max(), key=abs))
 
     def ip_offset(self, offset: int = 0) -> np.array:
         return self.ip + offset * self.delta
@@ -154,22 +165,46 @@ class Organism:
         self.regs[self.inst(3)] = self.regs[self.inst(1)] - self.regs[self.inst(2)]
 
     def allocate_child(self):
-        size = np.copy(self.regs[self.inst(1)])
+
+        """
+        Firstly, let\'s get new child size. In order to properly do it, we need to make x3 of the whole size, because
+        each command cell is now 3x3
+        """
+        size = np.copy(self.regs[self.inst(1)]) * 3
+
         if (size <= 0).any():
             return
         is_space_found = False
+
+        """
+        Then, we need to seek, BUT!
+        We need to move one by one => either we need to change ip_offset, or we need to change delta. 
+        Changing delta is a simpler one, because it doesn\'t require rewriting the whole algorithm.  
+        """
+        delta_before = np.copy(self.delta)
+
+        # Diving by absolute makes retain direction, but in a way like [1, -1] or [0, -1]
+        nonzero_in_delta = self.delta != 0
+
+        self.delta[nonzero_in_delta] = self.delta[nonzero_in_delta] / np.absolute(self.delta[nonzero_in_delta])
+        print(size)
+
         for i in range(2, max(c.config['memory_size'])):
             is_allocated_region = m.memory.is_allocated_region(self.ip_offset(i), size)
+
             if is_allocated_region is None:
                 break
             if not is_allocated_region:
                 self.child_start = self.ip_offset(i)
-                self.regs[self.inst(2)] = np.copy(self.child_start)
+                self.regs[m.memory.inst(self.ip + delta_before * 2)] = np.copy(self.child_start)
                 is_space_found = True
                 break
+
         if is_space_found:
-            self.child_size = np.copy(self.regs[self.inst(1)])
+            self.child_size = np.copy(size // 3)
             m.memory.allocate(self.child_start, self.child_size)
+        print(self.delta)
+        self.delta = delta_before
 
     def load_inst(self):
         self.regs[self.inst(2)] = c.instructions[
@@ -185,7 +220,8 @@ class Organism:
             self.stack.append(np.copy(self.regs[self.inst(1)]))
 
     def correct_error(self):
-        center = self.ip_offset(self.delta)
+        next = self.delta // max(np.abs(self.delta)) + self.ip
+        center = next
         coords_for_voting = [center]
 
         for x_offset in [-1, 1]:
@@ -249,7 +285,8 @@ class Organism:
                     and max(np.abs(self.ip - self.start)) > c.config['penalize_parasitism']
             ):
                 raise ValueError
-        except Exception:
+        except Exception as e:
+            # print(str(e))
             self.errors += 1
         if is_center:
             self.delta = self.delta // 3
@@ -369,7 +406,7 @@ class OrganismFull(Organism):
         else:
             self.update_window(self.size, self.start, parent_color)
         child_color = c.colors['child_bold'] if self.is_selected else c.colors['child']
-        self.update_window(self.child_size, self.child_start, child_color)
+        self.update_window(self.child_size * 3, self.child_start, child_color)
         # m.memory.update(refresh=True)
         self.update_ip()
 
@@ -378,6 +415,8 @@ class OrganismFull(Organism):
         info += '  errors   : {}\n'.format(self.errors)
         info += '  ip       : {}\n'.format(list(self.ip))
         info += '  delta    : {}\n'.format(list(self.delta))
+        info += '  center flag    : {}\n'.format(self.center_flag)
+
         for reg in self.regs:
             info += '  r{}       : {}\n'.format(reg, list(self.regs[reg]))
         for i in range(len(self.stack)):
