@@ -56,3 +56,21 @@ python fungera.py --name "Simulation 1"
 | <kbd>p</kbd>       | Save simulation                                     |
 | <kbd>l</kbd>       | Load last saved simulation                          |
 | <kbd>m</kbd>       | Toogle minimal mode                                 |
+
+
+### What's already working in new command system
+
+- [x] \>, <, v, \^
+- [x] a, b, c, d
+- [x] 0, 1
+- [ ] S
+- [ ] P
+- [ ] +, -
+- [ ] W
+- [ ] L
+- [ ] ~
+- [x] @
+- [ ]\*
+- [ ] \$
+- [ ] \&
+
