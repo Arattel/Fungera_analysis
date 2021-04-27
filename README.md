@@ -67,9 +67,9 @@ python fungera.py --name "Simulation 1"
 - [X] P
 - [x] +, -
 - [ ] W
-- [ ] L
+- [x] L
 - [x] ~
 - [x] @
 - [x] \$
-- [ ] \&
+- [x] \&
 

@@ -39,7 +39,7 @@ class Fungera:
             np.array([0, 0]), c.config['info_display_size'],
         )
         genome_size = self.load_genome_into_memory(
-            'alloc_child.gen', address=c.config['memory_size'] // 2
+            'initial_interpreted.gen', address=c.config['memory_size'] // 2
         )
         ip = c.config['memory_size'] // 2
         ip[0] += 1

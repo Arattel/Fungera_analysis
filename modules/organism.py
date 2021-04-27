@@ -212,8 +212,36 @@ class Organism:
         ][0]
 
     def write_inst(self):
-        if not np.array_equal(self.child_size, np.array([0, 0])):
-            m.memory.write_inst(self.regs[self.inst(1)], self.regs[self.inst(2)])
+        center_address = self.regs[self.inst(1)]
+        instruction_code = self.regs[self.inst(2)]
+
+        m.memory.write_inst(center_address, instruction_code)
+        print(center_address, instruction_code)
+
+        # Writing center instruction to coords on diagonals
+        for x_offset in [-1, 1]:
+            for y_offset in [-1, 1]:
+                diagonal_address = np.array([center_address[0] + x_offset, center_address[1] + y_offset])
+                m.memory.write_inst(address=diagonal_address,
+                                    inst_code=instruction_code)
+
+        error_correction_inst_code = c.instructions['E'][0]
+
+        # Writing error correction codes by sides
+        for x_offset in [-1, 1]:
+            error_correction_address = np.array([center_address[0] + x_offset, center_address[1]])
+            m.memory.write_inst(
+                address=error_correction_address,
+                inst_code=error_correction_inst_code
+            )
+
+        for y_offset in [-1, 1]:
+            error_correction_address = np.array([center_address[0], center_address[1] + y_offset])
+            m.memory.write_inst(
+                address=error_correction_address,
+                inst_code=error_correction_inst_code
+            )
+        # if not np.array_equal(self.child_size, np.array([0, 0])):
 
     def push(self):
         if len(self.stack) < c.config['stack_length']:
