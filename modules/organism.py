@@ -95,16 +95,17 @@ class Organism:
         pass
 
     def move_up(self):
-        self.delta = c.deltas['up'] * abs(max(self.delta.min(), self.delta.max(), key=abs))
+        self.delta = np.copy(c.deltas['up'])
 
     def move_down(self):
-        self.delta = c.deltas['down'] * abs(max(self.delta.min(), self.delta.max(), key=abs))
+        self.delta = np.copy(c.deltas['down'])
 
     def move_right(self):
-        self.delta = c.deltas['right'] * abs(max(self.delta.min(), self.delta.max(), key=abs))
+        self.delta = np.copy(c.deltas['right'])
+        # print(c.deltas)
 
     def move_left(self):
-        self.delta = c.deltas['left'] * abs(max(self.delta.min(), self.delta.max(), key=abs))
+        self.delta = np.copy(c.deltas['left'])
 
     def ip_offset(self, offset: int = 0) -> np.array:
         return self.ip + offset * self.delta
@@ -145,15 +146,15 @@ class Organism:
 
     def increment(self):
         if self.inst(1) in self.mods.keys():
-            self.regs[self.inst(2)][self.mods[self.inst(1)]] += 1
+            self.regs[self.inst(2)][self.mods[self.inst(1)]] += 3
         else:
-            self.regs[self.inst(1)] += 1
+            self.regs[self.inst(1)] += 3
 
     def decrement(self):
         if self.inst(1) in self.mods.keys():
-            self.regs[self.inst(2)][self.mods[self.inst(1)]] -= 1
+            self.regs[self.inst(2)][self.mods[self.inst(1)]] -= 3
         else:
-            self.regs[self.inst(1)] -= 1
+            self.regs[self.inst(1)] -= 3
 
     def zero(self):
         self.regs[self.inst(1)] = np.array([0, 0])
@@ -170,7 +171,8 @@ class Organism:
         Firstly, let\'s get new child size. In order to properly do it, we need to make x3 of the whole size, because
         each command cell is now 3x3
         """
-        size = np.copy(self.regs[self.inst(1)]) * 3
+        size = np.copy(self.regs[self.inst(1)])  # * 3
+        print(size)
 
         if (size <= 0).any():
             return
@@ -187,7 +189,6 @@ class Organism:
         nonzero_in_delta = self.delta != 0
 
         self.delta[nonzero_in_delta] = self.delta[nonzero_in_delta] / np.absolute(self.delta[nonzero_in_delta])
-        print(size)
 
         for i in range(2, max(c.config['memory_size'])):
             is_allocated_region = m.memory.is_allocated_region(self.ip_offset(i), size)
@@ -196,14 +197,14 @@ class Organism:
                 break
             if not is_allocated_region:
                 self.child_start = self.ip_offset(i)
-                self.regs[m.memory.inst(self.ip + delta_before * 2)] = np.copy(self.child_start)
+                self.regs[m.memory.inst(self.ip + delta_before * 2)] = np.copy(self.child_start) + np.array([1, 1])
                 is_space_found = True
                 break
 
         if is_space_found:
-            self.child_size = np.copy(size // 3)
+            self.child_size = np.copy(size)
             m.memory.allocate(self.child_start, self.child_size)
-        print(self.delta)
+        # print(self.delta)
         self.delta = delta_before
 
     def load_inst(self):
@@ -216,7 +217,7 @@ class Organism:
         instruction_code = self.regs[self.inst(2)]
 
         m.memory.write_inst(center_address, instruction_code)
-        print(center_address, instruction_code)
+        # print(center_address, instruction_code)
 
         # Writing center instruction to coords on diagonals
         for x_offset in [-1, 1]:
@@ -284,8 +285,9 @@ class Organism:
 
     def split_child(self):
         if not np.array_equal(self.child_size, np.array([0, 0])):
-            m.memory.deallocate(self.child_start, self.child_size * 3)
-            self.__class__(self.child_start, self.child_size * 3, parent=self.organism_id)
+            m.memory.deallocate(self.child_start, self.child_size)
+            self.__class__(self.child_start, self.child_size, parent=self.organism_id,
+                           ip=self.child_start + np.array([0, 1]))
             self.children += 1
             self.reproduction_cycle = 0
         self.child_size = np.array([0, 0])
@@ -302,9 +304,13 @@ class Organism:
         self.child_size = np.array([0, 0])
 
     def cycle(self):
-        is_center = self.ip_is_center()
-        if is_center:
-            self.delta *= 3
+        prev = -1 * (self.delta // max(np.abs(self.delta)) + self.ip)
+        if m.memory.inst(prev) == 'E':
+            old_ip = np.copy(self.ip)
+            self.ip = prev
+            self.correct_error()
+            self.ip = old_ip
+
         try:
             getattr(self, c.instructions[self.inst()][1])()
             if (
@@ -315,15 +321,8 @@ class Organism:
                 raise ValueError
         except Exception as e:
             # print(str(e))
+            logger.error(f'{e}', exc_info=True)
             self.errors += 1
-        if is_center:
-            self.delta = self.delta // 3
-        if is_center:
-            self.delta *= 2
-            self.center_flag = True
-        else:
-            self.delta = self.delta // 2 if self.center_flag else self.delta
-            self.center_flag = False
 
         new_ip = self.ip + self.delta
         self.reproduction_cycle += 1
@@ -434,7 +433,7 @@ class OrganismFull(Organism):
         else:
             self.update_window(self.size, self.start, parent_color)
         child_color = c.colors['child_bold'] if self.is_selected else c.colors['child']
-        self.update_window(self.child_size * 3, self.child_start, child_color)
+        self.update_window(self.child_size, self.child_start, child_color)
         # m.memory.update(refresh=True)
         self.update_ip()
 
