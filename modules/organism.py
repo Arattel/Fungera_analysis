@@ -6,6 +6,16 @@ import modules.common as c
 import modules.memory as m
 import modules.queue as q
 
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(levelname)s|%(filename)s|%(lineno)s| %(asctime)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    filename='organism.log',
+)
+logger = logging.getLogger(__name__)
+
 
 class RegsDict(dict):
     allowed_keys = ['a', 'b', 'c', 'd']
@@ -152,6 +162,34 @@ class Organism:
     def subtract(self):
         self.regs[self.inst(3)] = self.regs[self.inst(1)] - self.regs[self.inst(2)]
 
+    def call(self):
+        pass
+
+    def return_to_coord(self):
+        pass
+
+    def jump_to_pattern(self):
+        template = []
+        jump_coord_end = None
+        for i in range(1, max(self.size)):
+            if self.inst(i) in ['.', ':']:
+                template.append(':' if self.inst(i) == '.' else '.')
+            else:
+                break
+        counter = 0
+        for i in range(i, max(self.size)):
+            if self.inst(i) == template[counter]:
+                counter += 1
+            else:
+                counter = 0
+            if counter == len(template):
+                jump_coord_end = self.ip + i * self.delta
+                break
+        if jump_coord_end is not None:
+            self.ip = jump_coord_end - self.delta * counter
+        else:
+            raise ValueError
+
     def allocate_child(self):
         size = np.copy(self.regs[self.inst(1)])
         if (size <= 0).any():
@@ -214,8 +252,10 @@ class Organism:
                     and max(np.abs(self.ip - self.start)) > c.config['penalize_parasitism']
             ):
                 raise ValueError
-        except Exception:
+        except Exception as e:
             self.errors += 1
+            logger.error(f'{e}', exc_info=True)
+
         new_ip = self.ip + self.delta
         self.reproduction_cycle += 1
         if (

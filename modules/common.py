@@ -57,7 +57,7 @@ instructions = {
     '$': [np.array([7, 3]), 'split_child'],
     'S': [np.array([8, 0]), 'push'],
     'P': [np.array([8, 1]), 'pop'],
-    'E': [np.array([9, 0]), 'correct_error']
+    'J': [np.array([9, 0]), 'jump_to_pattern']
 }
 
 deltas = {
