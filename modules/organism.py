@@ -162,11 +162,32 @@ class Organism:
     def subtract(self):
         self.regs[self.inst(3)] = self.regs[self.inst(1)] - self.regs[self.inst(2)]
 
-    def call(self):
-        pass
+    def call_to_pattern(self):
+        template = []
+        jump_coord_end = None
+        for i in range(1, max(self.size)):
+            if self.inst(i) in ['.', ':']:
+                template.append(':' if self.inst(i) == '.' else '.')
+            else:
+                break
+        counter = 0
+        for i in range(i, max(self.size)):
+            if self.inst(i) == template[counter]:
+                counter += 1
+            else:
+                counter = 0
+            if counter == len(template):
+                jump_coord_end = self.ip + i * self.delta
+                break
+        if jump_coord_end is not None:
+            self.stack.append(np.copy(self.ip + len(template) * self.delta))
+            self.ip = jump_coord_end - self.delta * counter
+        else:
+            raise ValueError
 
     def return_to_coord(self):
-        pass
+        return_coords = self.stack.pop()
+        self.ip = np.copy(return_coords) - self.delta
 
     def jump_to_pattern(self):
         template = []
