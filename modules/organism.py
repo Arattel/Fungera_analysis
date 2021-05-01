@@ -154,13 +154,22 @@ class Organism:
             self.regs[self.inst(1)] -= 1
 
     def zero(self):
-        self.regs[self.inst(1)] = np.array([0, 0])
+        if self.inst(1) in self.mods.keys():
+            self.regs[self.inst(2)][self.mods[self.inst(1)]] = 0
+        else:
+            self.regs[self.inst(1)] = np.array([0, 0])
 
     def one(self):
-        self.regs[self.inst(1)] = np.array([1, 1])
+        if self.inst(1) in self.mods.keys():
+            self.regs[self.inst(2)][self.mods[self.inst(1)]] = 1
+        else:
+            self.regs[self.inst(1)] = np.array([1, 1])
 
     def subtract(self):
         self.regs[self.inst(3)] = self.regs[self.inst(1)] - self.regs[self.inst(2)]
+
+    def add(self):
+        self.regs[self.inst(3)] = self.regs[self.inst(1)] + self.regs[self.inst(2)]
 
     def call_to_pattern(self):
         template = []
@@ -212,11 +221,12 @@ class Organism:
             raise ValueError
 
     def allocate_child(self):
+        old_delta = np.copy(self.delta)
         size = np.copy(self.regs[self.inst(1)])
         if (size <= 0).any():
             return
         is_space_found = False
-        for i in range(2, max(c.config['memory_size'])):
+        for i in range(0, max(c.config['memory_size'])):
             is_allocated_region = m.memory.is_allocated_region(self.ip_offset(i), size)
             if is_allocated_region is None:
                 break
@@ -228,6 +238,22 @@ class Organism:
         if is_space_found:
             self.child_size = np.copy(self.regs[self.inst(1)])
             m.memory.allocate(self.child_start, self.child_size)
+        else:
+            for direction in c.deltas:
+                self.delta = c.deltas[direction]
+                for i in range(0, max(c.config['memory_size'])):
+                    is_allocated_region = m.memory.is_allocated_region(self.ip_offset(i), size)
+                    if is_allocated_region is None:
+                        break
+                    if not is_allocated_region:
+                        self.child_start = self.ip_offset(i)
+                        self.regs[self.inst(2)] = np.copy(self.child_start)
+                        is_space_found = True
+                        break
+                if is_space_found:
+                    self.child_size = np.copy(self.regs[self.inst(1)])
+                    m.memory.allocate(self.child_start, self.child_size)
+            self.delta = np.copy(old_delta)
 
     def load_inst(self):
         self.regs[self.inst(2)] = c.instructions[
