@@ -166,37 +166,50 @@ class Organism:
             self.regs[self.inst(1)] = np.array([1, 1])
 
     def subtract(self):
-        self.regs[self.inst(3)] = self.regs[self.inst(1)] - self.regs[self.inst(2)]
+        self.regs[self.inst(3)] = np.abs(self.regs[self.inst(1)] - self.regs[self.inst(2)])
 
     def add(self):
         self.regs[self.inst(3)] = self.regs[self.inst(1)] + self.regs[self.inst(2)]
 
     def call_to_pattern(self):
-        template = []
-        jump_coord_end = None
-        for i in range(1, max(self.size)):
-            if self.inst(i) in ['.', ':']:
-                template.append(':' if self.inst(i) == '.' else '.')
-            else:
-                break
-        counter = 0
-        for i in range(i, max(self.size)):
-            if self.inst(i) == template[counter]:
-                counter += 1
-            else:
-                counter = 0
-            if counter == len(template):
-                jump_coord_end = self.ip + i * self.delta
-                break
-        if jump_coord_end is not None:
-            self.stack.append(np.copy(self.ip + len(template) * self.delta))
-            self.ip = jump_coord_end - self.delta * counter
+        template = [self.inst(1), self.inst(2), self.inst(3)]
+        organisms_templates_coords = []
+        other_coords = []
+        for i in range(-max(self.size), max(self.size)):
+            for j in range(-max(self.size), max(self.size)):
+                offset = np.array([i, j])
+                if ((offset + self.ip) != self.ip_offset(1)).any():
+                    counter = 0
+                    for index in range(3):
+                        instruction = m.memory.inst(
+                            self.ip + offset + self.delta * index
+                        )
+                        if template[index] != instruction:
+                            break
+                        counter += 1
+                    if counter == len(template):
+                        new_ip = np.copy(self.ip) + offset - self.delta
+                        if (new_ip >= self.start).all() and (new_ip < (self.start + self.size)).all():
+                            organisms_templates_coords.append(new_ip)
+                        else:
+                            other_coords.append(new_ip)
+        if len(organisms_templates_coords) > 0:
+            distances = np.array([np.linalg.norm(self.ip - i) for i in organisms_templates_coords])
+            new_ip = organisms_templates_coords[np.argmin(distances)]
+            self.stack.append(np.copy(self.ip + self.delta * (len(template) + 1)))
+            self.ip = new_ip
+        elif len(other_coords) > 0:
+            distances = np.array([np.linalg.norm(self.ip - i) for i in other_coords])
+            new_ip = other_coords[np.argmin(distances)]
+            self.stack.append(np.copy(self.ip + self.delta * (len(template) + 1)))
+            self.ip = new_ip
         else:
-            raise ValueError
+            pass
 
     def return_to_coord(self):
         return_coords = self.stack.pop()
-        self.ip = np.copy(return_coords) - self.delta
+        print(return_coords)
+        self.ip = np.copy(return_coords)
 
     def jump_to_pattern(self):
         template = []

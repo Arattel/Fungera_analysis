@@ -3,10 +3,11 @@ import modules.common as c
 
 
 class Queue:
-    def __init__(self):
+    def __init__(self, kill_organisms_ratio=c.config['kill_organisms_ratio']):
         self.organisms = []
         self.archive = []
         self.index = None
+        self.kill_organisms_ratio = kill_organisms_ratio
 
     def add_organism(self, organism):
         self.organisms.append(organism)
@@ -47,7 +48,7 @@ class Queue:
 
     def kill_organisms(self):
         sorted_organisms = sorted(self.organisms, reverse=True)
-        ratio = int(len(self.organisms) * c.config['kill_organisms_ratio'])
+        ratio = int(len(self.organisms) * self.kill_organisms_ratio)
         for organism in sorted_organisms[:ratio]:
             organism.kill()
         self.organisms = sorted_organisms[ratio:]

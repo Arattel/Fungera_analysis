@@ -13,6 +13,7 @@ class Memory:
         self.memory_map = memory_map
         self.allocation_map = allocation_map
         self.position = position
+        self.size = np.array(c.config['memory_size'])
 
     def allocate(self, address: np.array, size: np.array):
         self.allocation_map[
@@ -69,6 +70,12 @@ class Memory:
 
     def toogle(self):
         return MemoryFull(self.memory_map, self.allocation_map, self.position)
+
+    def load_genome(self, genome: np.array, address: np.array, size: np.array):
+        self.memory_map[
+        address[0]: address[0] + size[0], address[1]: address[1] + size[1]
+        ] = genome
+        self.update()
 
     def update(self, refresh=True):
         pass
@@ -146,3 +153,5 @@ class MemoryFull(Memory):
 
 if c.screen is not None:
     memory = MemoryFull()
+else:
+    memory = Memory()

@@ -51,7 +51,8 @@ instructions = {
     '-': [np.array([6, 2]), 'decrement'],
     '+': [np.array([6, 3]), 'increment'],
     '~': [np.array([6, 4]), 'subtract'],
-    '*': [np.array([6, 5]), 'add'],
+    '*': [np.array([6, 4]), 'add'],
+
     'L': [np.array([7, 0]), 'load_inst'],
     'W': [np.array([7, 1]), 'write_inst'],
     '@': [np.array([7, 2]), 'allocate_child'],
