@@ -233,18 +233,18 @@ class Organism:
         else:
             raise ValueError
 
-    def allocate_child(self):
-        old_delta = np.copy(self.delta)
-        size = np.copy(self.regs[self.inst(1)])
+    def _allocate_memory(self,
+                         size: np.array = None, direction: str = 'left'):
+        delta = np.copy(c.deltas[direction])
         if (size <= 0).any():
             return
         is_space_found = False
         for i in range(0, max(c.config['memory_size'])):
-            is_allocated_region = m.memory.is_allocated_region(self.ip_offset(i), size)
+            is_allocated_region = m.memory.is_allocated_region(self.ip + i * delta, size)
             if is_allocated_region is None:
                 break
             if not is_allocated_region:
-                self.child_start = np.copy(self.ip_offset(i))
+                self.child_start = np.copy(self.ip + i * delta)
                 self.regs[self.inst(2)] = np.copy(self.child_start)
                 is_space_found = True
                 break
@@ -252,6 +252,16 @@ class Organism:
             self.child_size = np.copy(self.regs[self.inst(1)])
             m.memory.allocate(self.child_start, self.child_size)
             self.regs[self.inst(2)] = np.copy(self.child_start)
+            return True
+        else:
+            return False
+
+    def allocate_child(self):
+        size = np.copy(self.regs[self.inst(1)])
+        for direction in ['right']:
+            success = self._allocate_memory(size=size, direction=direction)
+            if success:
+                break
 
     def load_inst(self):
         self.regs[self.inst(2)] = c.instructions[

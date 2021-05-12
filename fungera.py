@@ -38,10 +38,12 @@ class Fungera:
         self.info_window = c.screen.derived(
             np.array([0, 0]), c.config['info_display_size'],
         )
+
+        coords = np.array(c.config['memory_size']) // 2
         genome_size = self.load_genome_into_memory(
-            'direction_agnostic_call.gen', c.config['memory_size'] // 2
+            'direction_agnostic_call.gen', coords
         )
-        o.OrganismFull(c.config['memory_size'] // 2, genome_size)
+        o.OrganismFull(coords, genome_size)
         self.update_info()
         if c.config['snapshot_to_load'] != 'new':
             self.load_state()
