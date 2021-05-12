@@ -5,3 +5,4 @@ snapshots
 genomes
 *.zip
 *.log
+.idea

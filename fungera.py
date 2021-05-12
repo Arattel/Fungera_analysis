@@ -39,7 +39,7 @@ class Fungera:
             np.array([0, 0]), c.config['info_display_size'],
         )
         genome_size = self.load_genome_into_memory(
-            'jump_to_coord_improved.gen', c.config['memory_size'] // 2
+            'direction_agnostic_call.gen', c.config['memory_size'] // 2
         )
         o.OrganismFull(c.config['memory_size'] // 2, genome_size)
         self.update_info()

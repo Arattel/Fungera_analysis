@@ -244,29 +244,14 @@ class Organism:
             if is_allocated_region is None:
                 break
             if not is_allocated_region:
-                self.child_start = self.ip_offset(i)
+                self.child_start = np.copy(self.ip_offset(i))
                 self.regs[self.inst(2)] = np.copy(self.child_start)
                 is_space_found = True
                 break
         if is_space_found:
             self.child_size = np.copy(self.regs[self.inst(1)])
             m.memory.allocate(self.child_start, self.child_size)
-        else:
-            for direction in c.deltas:
-                self.delta = c.deltas[direction]
-                for i in range(0, max(c.config['memory_size'])):
-                    is_allocated_region = m.memory.is_allocated_region(self.ip_offset(i), size)
-                    if is_allocated_region is None:
-                        break
-                    if not is_allocated_region:
-                        self.child_start = self.ip_offset(i)
-                        self.regs[self.inst(2)] = np.copy(self.child_start)
-                        is_space_found = True
-                        break
-                if is_space_found:
-                    self.child_size = np.copy(self.regs[self.inst(1)])
-                    m.memory.allocate(self.child_start, self.child_size)
-            self.delta = np.copy(old_delta)
+            self.regs[self.inst(2)] = np.copy(self.child_start)
 
     def load_inst(self):
         self.regs[self.inst(2)] = c.instructions[
