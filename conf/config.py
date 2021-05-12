@@ -17,4 +17,5 @@ class Config:
     autosave_rate: Tuple = (1, 1)
     penalize_parasitism: int = 100
     random_seed: int = 38
+    use_mutations: bool = False
     simulation_name: str = 'Entropy_experiment_normal_save_rate_seed_38_kill_rate_20'

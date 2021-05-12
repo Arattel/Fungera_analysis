@@ -184,7 +184,7 @@ class Fungera:
 
     def make_cycle(self):
         m.memory.update(refresh=True)
-        if self.cycle % c.config['random_rate'] == 0:
+        if self.cycle % c.config['random_rate'] == 0 and c.config['use_mutations']:
             m.memory.cycle()
         if self.cycle % c.config['cycle_gap'] == 0:
             if m.memory.is_time_to_kill():
