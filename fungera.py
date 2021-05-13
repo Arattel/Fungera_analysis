@@ -12,6 +12,13 @@ from conf.config import Config, default_ancestors
 import math
 import json
 
+import sys
+
+sys.modules['modules.memory'] = m
+sys.modules['modules.queue'] = q
+sys.modules['modules.organism'] = o
+sys.modules['modules.common'] = c
+
 from typing import Dict
 import logging
 
@@ -348,5 +355,4 @@ class Fungera:
 
 if __name__ == '__main__':
     c.is_running = False
-    logger.info('Perkele!')
     Fungera().run()

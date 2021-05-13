@@ -153,6 +153,7 @@ class FungeraHeadless:
         m.memory.update(refresh=True)
         if self.cycle % c.config['random_rate'] == 0 and not self.no_mutations:
             m.memory.cycle()
+            print('Mutation!')
         if self.cycle % c.config['cycle_gap'] == 0:
             if m.memory.is_time_to_kill():
                 q.queue.kill_organisms()
@@ -291,7 +292,7 @@ class FungeraHeadless:
 if __name__ == '__main__':
     print(c.instructions)
     print(c.deltas)
-    f = FungeraHeadless(no_mutations=True)
+    f = FungeraHeadless(no_mutations=not c.config['use_mutations'])
     cnt = 0
     while True:
         q.queue.cycle_all()

@@ -5,7 +5,9 @@ import numpy as np
 import modules.common_params.common_headless as c
 import modules.memory_classes.memory_headless as m
 import modules.queues.queue_headless as q
+import random
 
+random.seed(c.config['random_seed'])
 import logging
 
 logging.basicConfig(
@@ -332,40 +334,37 @@ class Organism:
 
 
 class OrganismJump(Organism):
-    def allocate_child(self):
-        old_delta = np.copy(self.delta)
-        size = np.copy(self.regs[self.inst(1)])
+
+    def _allocate_child(self, direction, size):
         if (size <= 0).any():
             return
         is_space_found = False
-        for i in range(0, max(c.config['memory_size'])):
-            is_allocated_region = m.memory.is_allocated_region(self.ip_offset(i), size)
+        delta = np.copy(c.deltas[direction])
+        for i in range(2, max(c.config['memory_size'])):
+            is_allocated_region = m.memory.is_allocated_region(self.ip + delta * i, size)
             if is_allocated_region is None:
                 break
             if not is_allocated_region:
-                self.child_start = self.ip_offset(i)
+                self.child_start = np.copy(self.ip + delta * i)
                 self.regs[self.inst(2)] = np.copy(self.child_start)
                 is_space_found = True
                 break
         if is_space_found:
             self.child_size = np.copy(self.regs[self.inst(1)])
             m.memory.allocate(self.child_start, self.child_size)
+            return True
         else:
-            for direction in c.deltas:
-                self.delta = c.deltas[direction]
-                for i in range(0, max(c.config['memory_size'])):
-                    is_allocated_region = m.memory.is_allocated_region(self.ip_offset(i), size)
-                    if is_allocated_region is None:
-                        break
-                    if not is_allocated_region:
-                        self.child_start = self.ip_offset(i)
-                        self.regs[self.inst(2)] = np.copy(self.child_start)
-                        is_space_found = True
-                        break
-                if is_space_found:
-                    self.child_size = np.copy(self.regs[self.inst(1)])
-                    m.memory.allocate(self.child_start, self.child_size)
-            self.delta = np.copy(old_delta)
+            return False
+
+    def allocate_child(self):
+        size = np.copy(self.regs[self.inst(1)])
+        directions = list(c.deltas.keys())
+        random.shuffle(directions)
+        logger.info(f'{directions}')
+        for direction in directions:
+            success = self._allocate_child(direction=direction, size=size)
+            if success:
+                break
 
     def return_to_coord(self):
         return_coords = self.stack.pop()
