@@ -5,7 +5,7 @@ from threading import Thread, Event
 import toml
 import numpy as np
 import modules.window as w
-from conf.config import Config
+from conf.config import Config, default_ancestors
 from modules.common_params.helpers import init_instruction_set, init_deltas
 from dataclasses import asdict
 import shutil
@@ -30,11 +30,6 @@ class RepeatedTimer(Thread):
                 self.function(*self.args, **self.kwargs)
                 self.interval[0] *= self.interval[1]
         self.finished.set()
-
-
-instructions = init_instruction_set(Config.instruction_set)
-deltas = init_deltas(Config.instruction_set)
-instructions_set_name = Config.instruction_set
 
 
 colors = {
@@ -108,11 +103,23 @@ parser.add_argument(
     default=config['random_rate']
 )
 
+parser.add_argument(
+    '--instruction_set',
+    type=str,
+    default=Config.instruction_set,
+    choices=list(default_ancestors.keys())
+)
+
 line_args = parser.parse_args()
 
 config['snapshot_to_load'] = line_args.state
 config['random_seed'] = line_args.seed
 config['simulation_name'] = line_args.name
 config['random_rate'] = line_args.random_rate
+
+instructions_set_name = line_args.instruction_set
+
+instructions = init_instruction_set(instructions_set_name)
+deltas = init_deltas(instructions_set_name)
 
 screen = init_curses()

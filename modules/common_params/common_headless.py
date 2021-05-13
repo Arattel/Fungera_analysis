@@ -4,7 +4,7 @@ from threading import Thread, Event
 import toml
 import numpy as np
 import modules.window as w
-from conf.config import Config
+from conf.config import Config, default_ancestors
 from dataclasses import asdict
 import shutil
 from modules.common_params.helpers import init_instruction_set, init_deltas
@@ -29,11 +29,6 @@ class RepeatedTimer(Thread):
                 self.function(*self.args, **self.kwargs)
                 self.interval[0] *= self.interval[1]
         self.finished.set()
-
-
-instructions = init_instruction_set(Config.instruction_set)
-deltas = init_deltas(Config.instruction_set)
-instructions_set_name = Config.instruction_set
 
 
 def load_config():
@@ -66,15 +61,24 @@ parser.add_argument(
 parser.add_argument(
     '--out', type=str, help='Output file',
 )
-parser.add_argument(
-    '--input', type=str, help='Output file',
-    default='../fungera/basic_fungera_experiments/'
-)
+
 parser.add_argument(
     '--state', default='new', help='State file to load (new/last/filename)',
 )
 
+parser.add_argument(
+    '--instruction_set',
+    type=str,
+    default=Config.instruction_set,
+    choices=list(default_ancestors.keys())
+)
+
 line_args = parser.parse_args()
+
+instructions_set_name = line_args.instruction_set
+
+instructions = init_instruction_set(instructions_set_name)
+deltas = init_deltas(instructions_set_name)
 
 config['random_seed'] = line_args.seed
 config['simulation_name'] = line_args.name
