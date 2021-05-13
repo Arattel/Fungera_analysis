@@ -1,6 +1,6 @@
 import io
 import numpy as np
-import modules.common as c
+import modules.common_params.common as c
 
 
 class Memory:

@@ -1,5 +1,5 @@
 from copy import copy
-import modules.common as c
+import modules.common_params.common_headless as c
 
 
 class Queue:

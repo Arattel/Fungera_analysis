@@ -1,18 +1,19 @@
-import curses
 import pickle
 import traceback
 import glob
 import os
 import numpy as np
-import modules.common_params.common as c
-import modules.memory_classes.memory as m
-import modules.queues.queue as q
-import modules.organisms.organism as o
+import modules.common_params.common_headless as c
+import modules.memory_classes.memory_headless as m
+import modules.queues.queue_headless as q
+import modules.organisms.organism_headless as o
 from conf.config import Config, default_ancestors
 import math
 import json
-
+from tqdm import tqdm
 from typing import Dict
+from copy import deepcopy
+from random import randint
 import logging
 
 logging.basicConfig(
@@ -22,34 +23,31 @@ logging.basicConfig(
     filename='example.log',
 )
 logger = logging.getLogger(__name__)
-logger.info(f'Perkele')
+
+c.screen = None
 
 
-class Fungera:
-    def __init__(self):
+class FungeraHeadless:
+    def __init__(self, no_mutations: bool = False):
         self.timer = c.RepeatedTimer(
             c.config['autosave_rate'], self.save_state, (True,)
         )
-        # print(c.config['random_seed'], c.config['simulation_name'], c.config['random_rate'])
         np.random.seed(c.config['random_seed'])
         if not os.path.exists('snapshots'):
             os.makedirs('snapshots')
         self.cycle = 0
-        self.is_minimal = False
+        self.is_minimal = True
         self.purges = 0
-        self.info_window = c.screen.derived(
-            np.array([0, 0]), c.config['info_display_size'],
-        )
-
+        self.no_mutations = no_mutations
         coords = np.array(c.config['memory_size']) // 2
         ip = np.copy(coords)
         if c.instructions_set_name == 'error_correction':
             ip = ip + 1
+
         genome_size = self.load_genome_into_memory(
-            default_ancestors[c.instructions_set_name], coords
+            self.read_genome(default_ancestors[c.instructions_set_name]), coords
         )
         o.organism_class(coords, genome_size, ip=ip)
-        self.update_info()
         if c.config['snapshot_to_load'] != 'new':
             self.load_state()
 
@@ -65,106 +63,64 @@ class Fungera:
         except Exception:
             curses.endwin()
             self.timer.cancel()
-            print(traceback.format_exc())
 
-    def load_genome_into_memory(self, filename: str, address: np.array) -> np.array:
+    def read_genome(self, filename):
         with open(filename) as genome_file:
             genome = np.array([list(line.strip()) for line in genome_file])
+            return genome
+
+    def load_genome_into_memory(self, genome, address: np.array) -> np.array:
+
         m.memory.load_genome(genome, address, genome.shape)
         return genome.shape
 
     def update_position(self, delta):
         m.memory.scroll(delta)
         q.queue.update_all()
-        self.update_info()
-
-    def update_info_full(self):
-        self.info_window.erase()
-        info = ''
-        info += '[{}]           \n'.format(c.config['simulation_name'])
-        info += 'Cycle      : {}\n'.format(self.cycle)
-        info += 'Position   : {}\n'.format(list(m.memory.position))
-        info += 'Total      : {}\n'.format(len(q.queue.organisms))
-        info += 'Purges     : {}\n'.format(self.purges)
-        info += 'Organism   : {}\n'.format(q.queue.index)
-        info += q.queue.get_organism().info()
-        self.info_window.print(info)
-
-    def update_info_minimal(self):
-        self.info_window.erase()
-        info = ''
-        info += 'Minimal mode '
-        info += '[Running]\n' if c.is_running else '[Paused]\n'
-        info += 'Cycle      : {}\n'.format(self.cycle)
-        info += 'Total      : {}\n'.format(len(q.queue.organisms))
-        if q.queue.organisms:
-            entropy = self.get_entropy_score()
-
-            info += f"Entropy: {entropy}\n"
-            self.entropy = entropy
-            commands_distribution = self.get_commands_distribution()
-            for i in commands_distribution:
-                commands_distribution[i] = '{:.2e}'.format(commands_distribution[i])
-            # info += f"Commands distribution: {commands_distribution}\n"
-            # info += f"Organism sizes: {self.get_organism_sizes()[:3]}\n"
-        else:
-            info += "Entropy: 0.0"
-            raise ValueError
-            # info += f'{m.memory.memory_map[organism_bounds]}'
-        self.info_window.print(info)
-
-    def update_info(self):
-        if not self.is_minimal:
-            self.update_info_full()
-        else:
-            if self.cycle % c.config['cycle_gap'] == 0:
-                self.update_info_minimal()
 
     def toogle_minimal(self, memory=None):
         self.is_minimal = not self.is_minimal
-        self.update_info_minimal()
         m.memory.clear()
         m.memory = m.memory.toogle() if memory is None else memory.toogle()
         m.memory.update(refresh=True)
         q.queue.toogle_minimal()
 
     def save_state(self, from_timer=False):
-        return_to_full = False
-        if not self.is_minimal:
-            if from_timer:
-                return
-            self.toogle_minimal()
-            return_to_full = True
-        filename = 'snapshots/{}_cycle_{}.snapshot'.format(
-            c.config['simulation_name'].lower().replace(' ', '_'), self.cycle
-        )
-        with open(filename, 'wb') as f:
-            # TODO: Uncomment later for dumping both state and metrics
-            if c.config['dump_full_snapshots']:
-                state = {
-                    'cycle': self.cycle,
-                    'memory': m.memory,
-                    'queue': q.queue,
-                    'information_per_site': self.information_per_site_tables,
-                    'entropy': self.entropy
-                }
-                pickle.dump(state, f)
-
-            metrics = {
-                'cycle': self.cycle,
-                'information_per_site': self.information_per_site_tables,
-                'entropy': self.entropy,
-                'number_of_organisms': len(q.queue.organisms),
-                'commands_distribution': self.get_commands_distribution(),
-                'sizes': self.get_organism_sizes()
-            }
-            metrics_file = 'snapshots/{}_cycle_{}.snapshot'.format(
-                c.config['simulation_name'].lower().replace(' ', '_'), self.cycle
-            ) + '2'
-            with open(metrics_file, 'wb') as mf:
-                pickle.dump(metrics, mf)
-        if not self.is_minimal or return_to_full:
-            self.toogle_minimal()
+        pass
+        # return_to_full = False
+        # if not self.is_minimal:
+        #     if from_timer:
+        #         return
+        #     self.toogle_minimal()
+        #     return_to_full = True
+        # filename = 'snapshots/{}_cycle_{}.snapshot'.format(
+        #     c.config['simulation_name'].lower().replace(' ', '_'), self.cycle
+        # )
+        # with open(filename, 'wb') as f:
+        #     # TODO: Uncomment later for dumping both state and metrics
+        #     # state = {
+        #     #     'cycle': self.cycle,
+        #     #     'memory': m.memory,
+        #     #     'queue': q.queue,
+        #     #     'information_per_site': self.information_per_site_tables,
+        #     #     'entropy': self.entropy
+        #     # }
+        #     metrics = {
+        #         'cycle': self.cycle,
+        #         'information_per_site': self.information_per_site_tables,
+        #         'entropy': self.entropy,
+        #         'number_of_organisms': len(q.queue.organisms),
+        #         'commands_distribution': self.get_commands_distribution(),
+        #         'sizes': self.get_organism_sizes()
+        #     }
+        #     # pickle.dump(state, f)
+        #     metrics_file = 'snapshots/{}_cycle_{}.snapshot'.format(
+        #         c.config['simulation_name'].lower().replace(' ', '_'), self.cycle
+        #     ) + '2'
+        #     with open(metrics_file, 'wb') as mf:
+        #         pickle.dump(metrics, mf)
+        # if not self.is_minimal or return_to_full:
+        #     self.toogle_minimal()
 
     def load_state(self):
         return_to_full = False
@@ -176,32 +132,26 @@ class Fungera:
                     c.config['snapshot_to_load'] == 'last'
                     or c.config['snapshot_to_load'] == 'new'
             ):
-                filename = max(glob.glob('snapshots/*.snapshot'), key=os.path.getctime)
-                logger.info(filename)
+                filename = max(glob.glob('snapshots/*'), key=os.path.getctime)
             else:
                 filename = c.config['snapshot_to_load']
             with open(filename, 'rb') as f:
                 state = pickle.load(f)
-                logger.info(
-                    f'{state.keys()}'
-                )
                 memory = state['memory']
                 q.queue = state['queue']
                 self.cycle = state['cycle']
         except Exception as e:
-            print(e)
-            logger.error(e, exc_info=True)
+            # print(e)
             pass
-
         if not self.is_minimal or return_to_full:
             self.toogle_minimal(memory)
         else:
             m.memory = memory
-            self.update_info_minimal()
+            # self.update_info_minimal()
 
     def make_cycle(self):
         m.memory.update(refresh=True)
-        if self.cycle % c.config['random_rate'] == 0 and c.config['use_mutations']:
+        if self.cycle % c.config['random_rate'] == 0 and not self.no_mutations:
             m.memory.cycle()
         if self.cycle % c.config['cycle_gap'] == 0:
             if m.memory.is_time_to_kill():
@@ -210,7 +160,7 @@ class Fungera:
         if not self.is_minimal:
             q.queue.update_all()
         self.cycle += 1
-        self.update_info()
+        # self.update_info()
 
     @staticmethod
     def calculate_entropy(distribution, num_commands):
@@ -242,10 +192,8 @@ class Fungera:
     def get_organism_sizes(self):
         sizes = []
         for organism in q.queue.organisms:
-            sizes.append(str(organism.size))
-        sizes = np.array(sizes)
-
-        return np.unique(sizes, return_counts=True)
+            sizes.append(organism.size)
+        return sizes
 
     def get_entropy_score(self):
         max_table_size = [max(q.queue.organisms, key=lambda x: x.size[0]).size[0],
@@ -276,7 +224,7 @@ class Fungera:
             for j in range(max_table_size[1]):
                 per_site_entropy[i, j] = self.calculate_entropy(values_distributions[i][j], len(c.instructions))
 
-        self.information_per_site_tables = 1 - np.array(per_site_entropy)
+        self.information_per_site_tables = np.array(per_site_entropy)
         return np.sum(per_site_entropy)
         # total_entropy = 0
         # information_tables = []
@@ -308,46 +256,54 @@ class Fungera:
                start[1]: start[1] + size[1],
                ]
 
+    def find_unqiue_genomes(self):
+        all_genomes = []
+        for organism in q.queue.organisms:
+            all_genomes.append(self.get_organism_commands(organism.start, organism.size))
+
+        unique_genomes = []
+        indices = set()
+
+        for i, genome in enumerate(all_genomes):
+            indentical_indices = set()
+
+            if i not in indices:
+                indentical_indices.add(i)
+                indices.add(i)
+                for j, another_genome in enumerate(all_genomes):
+                    if i != j:
+                        if another_genome.shape == genome.shape and (another_genome == genome).all():
+                            indices.add(j)
+                            indentical_indices.add(j)
+                unique_genomes.append((genome, len(indentical_indices)))
+
+        return unique_genomes
+
     def input_stream(self):
-        while True:
-            key = c.screen.get_key()
-            if key == ord(' '):
-                c.is_running = not c.is_running
-                if self.is_minimal:
-                    self.update_info_minimal()
-            elif key == ord('c') and not c.is_running:
-                q.queue.cycle_all()
-                self.make_cycle()
-            elif key == curses.KEY_DOWN and not self.is_minimal:
-                self.update_position(c.config['scroll_step'] * c.deltas['down'])
-            elif key == curses.KEY_UP and not self.is_minimal:
-                self.update_position(c.config['scroll_step'] * c.deltas['up'])
-            elif key == curses.KEY_RIGHT and not self.is_minimal:
-                self.update_position(c.config['scroll_step'] * c.deltas['right'])
-            elif key == curses.KEY_LEFT and not self.is_minimal:
-                self.update_position(c.config['scroll_step'] * c.deltas['left'])
-            elif key == ord('d') and not self.is_minimal:
-                q.queue.select_next()
-                self.update_info()
-            elif key == ord('a') and not self.is_minimal:
-                q.queue.select_previous()
-                self.update_info()
-            elif key == ord('m'):
-                self.toogle_minimal()
-            elif key == ord('p'):
-                self.save_state()
-            elif key == ord('l'):
-                self.load_state()
-            elif key == ord('k'):
-                q.queue.kill_organisms()
-            elif key == -1 and c.is_running:
-                q.queue.cycle_all()
-                self.make_cycle()
-            elif len(q.queue.organisms) == 0:
+        for i in tqdm(range(100000)):
+            if len(q.queue.organisms) == 0:
                 break
+            q.queue.cycle_all()
+            self.make_cycle()
+            # print(len(q.queue.organisms))
 
 
 if __name__ == '__main__':
-    c.is_running = False
-    logger.info('Perkele!')
-    Fungera().run()
+    print(c.instructions)
+    print(c.deltas)
+    f = FungeraHeadless(no_mutations=True)
+    cnt = 0
+    while True:
+        q.queue.cycle_all()
+        f.make_cycle()
+        if len(q.queue.organisms) == 0:
+            print('iteration ended')
+            f.timer.cancel()
+
+            break
+        f.entropy = f.get_entropy_score()
+        if cnt % 10:
+            print(f'Cycle: {f.cycle}')
+            print(f'Entropy: {f.entropy}')
+            print(f'Num_organims: {len(q.queue.organisms)}')
+        cnt += 1

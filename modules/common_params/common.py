@@ -6,6 +6,7 @@ import toml
 import numpy as np
 import modules.window as w
 from conf.config import Config
+from modules.common_params.helpers import init_instruction_set, init_deltas
 from dataclasses import asdict
 import shutil
 
@@ -31,45 +32,10 @@ class RepeatedTimer(Thread):
         self.finished.set()
 
 
-instructions = {
-    '.': [np.array([0, 0]), 'no_operation'],
-    ':': [np.array([0, 1]), 'no_operation'],
-    'a': [np.array([1, 0]), 'no_operation'],
-    'b': [np.array([1, 1]), 'no_operation'],
-    'c': [np.array([1, 2]), 'no_operation'],
-    'd': [np.array([1, 3]), 'no_operation'],
-    'x': [np.array([2, 0]), 'no_operation'],
-    'y': [np.array([2, 1]), 'no_operation'],
-    '^': [np.array([3, 0]), 'move_up'],
-    'v': [np.array([3, 1]), 'move_down'],
-    '>': [np.array([3, 2]), 'move_right'],
-    '<': [np.array([3, 3]), 'move_left'],
-    '&': [np.array([4, 0]), 'find_template'],
-    '?': [np.array([5, 0]), 'if_not_zero'],
-    '1': [np.array([6, 0]), 'one'],
-    '0': [np.array([6, 1]), 'zero'],
-    '-': [np.array([6, 2]), 'decrement'],
-    '+': [np.array([6, 3]), 'increment'],
-    '~': [np.array([6, 4]), 'subtract'],
-    '*': [np.array([6, 5]), 'add'],
+instructions = init_instruction_set(Config.instruction_set)
+deltas = init_deltas(Config.instruction_set)
+instructions_set_name = Config.instruction_set
 
-    'L': [np.array([7, 0]), 'load_inst'],
-    'W': [np.array([7, 1]), 'write_inst'],
-    '@': [np.array([7, 2]), 'allocate_child'],
-    '$': [np.array([7, 3]), 'split_child'],
-    'S': [np.array([8, 0]), 'push'],
-    'P': [np.array([8, 1]), 'pop'],
-    'J': [np.array([9, 0]), 'jump_to_pattern'],
-    'C': [np.array([9, 1]), 'call_to_pattern'],
-    'R': [np.array([9, 2]), 'return_to_coord']
-}
-
-deltas = {
-    'left': np.array([0, -1]),
-    'right': np.array([0, 1]),
-    'up': np.array([-1, 0]),
-    'down': np.array([1, 0]),
-}
 
 colors = {
     'parent_bold': 1,
@@ -149,8 +115,4 @@ config['random_seed'] = line_args.seed
 config['simulation_name'] = line_args.name
 config['random_rate'] = line_args.random_rate
 
-# try:
 screen = init_curses()
-# except Exception:
-#     print('No display found')
-#     screen = None
