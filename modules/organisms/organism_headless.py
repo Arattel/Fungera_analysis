@@ -825,9 +825,12 @@ class OrganismErrorCorrection:
             organism_id=self.organism_id,
         )
 
+
 if c.instructions_set_name == 'base':
     organism_class = Organism
 elif c.instructions_set_name == 'jump_directed':
     organism_class = OrganismJumpDirected
 elif c.instructions_set_name == 'jump_direction_independent':
     organism_class = OrganismJumpDirectionIndependent
+elif c.instructions_set_name == 'error_correction':
+    organism_class = OrganismErrorCorrection

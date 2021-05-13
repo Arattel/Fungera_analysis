@@ -29,9 +29,7 @@ c.screen = None
 
 class FungeraHeadless:
     def __init__(self, no_mutations: bool = False):
-        self.timer = c.RepeatedTimer(
-            c.config['autosave_rate'], self.save_state, (True,)
-        )
+
         np.random.seed(c.config['random_seed'])
         if not os.path.exists('snapshots'):
             os.makedirs('snapshots')
@@ -53,6 +51,10 @@ class FungeraHeadless:
 
         self.information_per_site_tables = []
         self.entropy = 0.0
+
+        self.timer = c.RepeatedTimer(
+            c.config['autosave_rate'], self.save_state, (True,)
+        )
 
     def run(self):
         try:
