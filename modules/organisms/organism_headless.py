@@ -768,7 +768,7 @@ class OrganismErrorCorrection:
         self.child_size = np.array([0, 0])
 
     def cycle(self):
-        prev = -1 * (self.delta // max(np.abs(self.delta)) + self.ip)
+        prev = -1 * (self.delta // max(np.abs(self.delta))) + self.ip
         if m.memory.inst(prev) == 'E':
             old_ip = np.copy(self.ip)
             self.ip = prev
