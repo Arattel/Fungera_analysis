@@ -312,7 +312,7 @@ class Organism:
             m.memory.allocate(self.child_start, self.child_size)
 
     def toogle(self):
-        Organism(
+        self.__class__(
             address=None,
             size=self.size,
             ip=self.ip,
@@ -827,10 +827,12 @@ class OrganismErrorCorrection:
 
 
 if c.instructions_set_name == 'base':
-    organism_class = Organism
+    OrganismFull = Organism
 elif c.instructions_set_name == 'jump_directed':
-    organism_class = OrganismJumpDirected
+    OrganismFull = OrganismJumpDirected
 elif c.instructions_set_name == 'jump_direction_independent':
-    organism_class = OrganismJumpDirectionIndependent
+    OrganismFull = OrganismJumpDirectionIndependent
 elif c.instructions_set_name == 'error_correction':
-    organism_class = OrganismErrorCorrection
+    OrganismFull = OrganismErrorCorrection
+
+organism_class = OrganismFull
