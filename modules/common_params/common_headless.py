@@ -73,6 +73,8 @@ parser.add_argument(
     choices=list(default_ancestors.keys())
 )
 
+parser.add_argument('--no_snapshots', action='store_true')
+
 line_args = parser.parse_args()
 
 instructions_set_name = line_args.instruction_set
@@ -84,5 +86,6 @@ config['random_seed'] = line_args.seed
 config['simulation_name'] = line_args.name
 config['random_rate'] = line_args.random_rate
 config['snapshot_to_load'] = line_args.state
+config['dump_full_snapshots'] = not line_args.no_snapshots
 
 screen = None

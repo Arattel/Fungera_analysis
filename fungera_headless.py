@@ -86,41 +86,39 @@ class FungeraHeadless:
         q.queue.toogle_minimal()
 
     def save_state(self, from_timer=False):
-        pass
-        # return_to_full = False
-        # if not self.is_minimal:
-        #     if from_timer:
-        #         return
-        #     self.toogle_minimal()
-        #     return_to_full = True
-        # filename = 'snapshots/{}_cycle_{}.snapshot'.format(
-        #     c.config['simulation_name'].lower().replace(' ', '_'), self.cycle
-        # )
-        # with open(filename, 'wb') as f:
-        #     # TODO: Uncomment later for dumping both state and metrics
-        #     # state = {
-        #     #     'cycle': self.cycle,
-        #     #     'memory': m.memory,
-        #     #     'queue': q.queue,
-        #     #     'information_per_site': self.information_per_site_tables,
-        #     #     'entropy': self.entropy
-        #     # }
-        #     metrics = {
-        #         'cycle': self.cycle,
-        #         'information_per_site': self.information_per_site_tables,
-        #         'entropy': self.entropy,
-        #         'number_of_organisms': len(q.queue.organisms),
-        #         'commands_distribution': self.get_commands_distribution(),
-        #         'sizes': self.get_organism_sizes()
-        #     }
-        #     # pickle.dump(state, f)
-        #     metrics_file = 'snapshots/{}_cycle_{}.snapshot'.format(
-        #         c.config['simulation_name'].lower().replace(' ', '_'), self.cycle
-        #     ) + '2'
-        #     with open(metrics_file, 'wb') as mf:
-        #         pickle.dump(metrics, mf)
-        # if not self.is_minimal or return_to_full:
-        #     self.toogle_minimal()
+        return_to_full = False
+        if not self.is_minimal:
+            if from_timer:
+                return
+            self.toogle_minimal()
+            return_to_full = True
+        filename = 'snapshots/{}_cycle_{}.snapshot'.format(
+            c.config['simulation_name'].lower().replace(' ', '_'), self.cycle
+        )
+        if c.config['dump_full_snapshots']:
+            with open(filename, 'wb') as f:
+                state = {
+                    'cycle': self.cycle,
+                    'memory': m.memory,
+                    'queue': q.queue,
+                    'information_per_site': self.information_per_site_tables,
+                    'entropy': self.entropy
+                }
+                pickle.dump(state, f)
+
+        metrics = {
+            'cycle': self.cycle,
+            'information_per_site': self.information_per_site_tables,
+            'entropy': self.entropy,
+            'number_of_organisms': len(q.queue.organisms),
+            'commands_distribution': self.get_commands_distribution(),
+            'sizes': self.get_organism_sizes()
+        }
+        metrics_file = 'snapshots/{}_cycle_{}.snapshot'.format(
+            c.config['simulation_name'].lower().replace(' ', '_'), self.cycle
+        ) + '2'
+        with open(metrics_file, 'wb') as mf:
+            pickle.dump(metrics, mf)
 
     def load_state(self):
         return_to_full = False

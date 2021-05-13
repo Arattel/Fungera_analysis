@@ -9,6 +9,15 @@ from conf.config import Config, default_ancestors
 from modules.common_params.helpers import init_instruction_set, init_deltas
 from dataclasses import asdict
 import shutil
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(levelname)s|%(filename)s|%(lineno)s| %(asctime)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    filename='example.log',
+)
+logger = logging.getLogger(__name__)
 
 
 class RepeatedTimer(Thread):
@@ -29,6 +38,7 @@ class RepeatedTimer(Thread):
             if not self.finished.is_set():
                 self.function(*self.args, **self.kwargs)
                 self.interval[0] *= self.interval[1]
+
         self.finished.set()
 
 
@@ -110,13 +120,17 @@ parser.add_argument(
     choices=list(default_ancestors.keys())
 )
 
+parser.add_argument('--no_snapshots', action='store_true')
+
 line_args = parser.parse_args()
 
 config['snapshot_to_load'] = line_args.state
 config['random_seed'] = line_args.seed
 config['simulation_name'] = line_args.name
 config['random_rate'] = line_args.random_rate
+config['dump_full_snapshots'] = not line_args.no_snapshots
 
+print(config)
 instructions_set_name = line_args.instruction_set
 
 instructions = init_instruction_set(instructions_set_name)
