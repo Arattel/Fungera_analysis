@@ -58,9 +58,6 @@ parser.add_argument(
     '--random_rate', type=int, help='Random rate',
     default=config['random_rate']
 )
-parser.add_argument(
-    '--out', type=str, help='Output file',
-)
 
 parser.add_argument(
     '--state', default='new', help='State file to load (new/last/filename)',
@@ -73,7 +70,13 @@ parser.add_argument(
     choices=list(default_ancestors.keys())
 )
 
-
+parser.add_argument(
+    '--out', type=str, help='Output file',
+)
+parser.add_argument(
+    '--input', type=str, help='Output file',
+    default='../fungera/basic_fungera_experiments/'
+)
 
 parser.add_argument('--no_snapshots', action='store_true')
 
@@ -89,5 +92,7 @@ config['simulation_name'] = line_args.name
 config['random_rate'] = line_args.random_rate
 config['snapshot_to_load'] = line_args.state
 config['dump_full_snapshots'] = not line_args.no_snapshots
+config['input_dir'] = line_args.input
+
 
 screen = None
