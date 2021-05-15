@@ -11,8 +11,6 @@ class Queue:
 
     def add_organism(self, organism):
         self.organisms.append(organism)
-        # print(self.organisms)
-        # print(self.organisms[0].ip, self.organisms[0].size)
         if self.index is None:
             self.index = 0
             self.organisms[self.index].is_selected = True

@@ -141,7 +141,7 @@ class FungeraHeadless:
                 q.queue = state['queue']
                 self.cycle = state['cycle']
         except Exception as e:
-            # print(e)
+            print(e)
             pass
         if not self.is_minimal or return_to_full:
             self.toogle_minimal(memory)
@@ -153,7 +153,7 @@ class FungeraHeadless:
         m.memory.update(refresh=True)
         if self.cycle % c.config['random_rate'] == 0 and not self.no_mutations:
             m.memory.cycle()
-            print('Mutation!')
+            # print('Mutation!')
         if self.cycle % c.config['cycle_gap'] == 0:
             if m.memory.is_time_to_kill():
                 q.queue.kill_organisms()
