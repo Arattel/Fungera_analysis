@@ -879,7 +879,7 @@ class OrganismErrorCorrection:
         if not np.array_equal(self.child_size, np.array([0, 0])):
             m.memory.deallocate(self.child_start, self.child_size)
             self.__class__(self.child_start, self.child_size, parent=self.organism_id,
-                           ip=self.child_start + np.array([0, 1]))
+                           ip=self.child_start + np.array([1, 1]))
             self.children += 1
             self.reproduction_cycle = 0
         self.child_size = np.array([0, 0])
