@@ -13,6 +13,21 @@ def get_prefixes(filenames: List[str]) -> List[str]:
     return prefixes
 
 
+def extract_cycle(filename):
+    cycle = int(filename.split('_cycle_')[1].split('.')[0])
+    return cycle
+
+
+def get_full_snapshot_cycles(prefix: str = None, directory: str = None):
+    filenames = os.listdir(directory)
+    filenames = list(filter(lambda x: x.startswith(prefix), filenames))
+    full_snapshot_filenames = list(filter(lambda x: x.endswith('.snapshot'), filenames))
+    cycles = list(map(extract_cycle, full_snapshot_filenames))
+    cycles = np.array(cycles)
+    print(cycles)
+    return np.sort(cycles)
+
+
 def preprocess_records(records) -> pd.DataFrame:
     cycles = list(map(lambda x: x['cycle'], records))
     entropies = list(map(lambda x: x['entropy'], records))
@@ -49,9 +64,19 @@ def get_summary(df, max_derivative_points=15):
     return np.concatenate([df.cycles.values[local_max], df.cycles.values[local_min], df.cycles.values[derivatives]])
 
 
+def get_closest_full_cycle(metric_cycle: int = None,
+                           full_snapshot_cycles: np.array = None):
+    diff = full_snapshot_cycles - metric_cycle
+    diff = np.absolute(diff)
+    print(diff)
+    return full_snapshot_cycles[np.argmin(diff)]
+
+
 def get_summarization_cycles(metrics_df: pd.DataFrame, smoothing_window: int = None,
-                             max_derivative_points: int = 10):
+                             max_derivative_points: int = 10, full_snapshot_cycles: np.array = None):
     metrics_df.entropies = metrics_df.entropies.rolling(smoothing_window).mean()
     metrics_df = metrics_df.iloc[smoothing_window - 1:, :]
     summary_cycles = get_summary(df=metrics_df, max_derivative_points=max_derivative_points)
-    return np.sort(summary_cycles)
+    summary_cycles = np.sort(summary_cycles)
+    return np.array(
+        [get_closest_full_cycle(metric_cycle=x, full_snapshot_cycles=full_snapshot_cycles) for x in summary_cycles])

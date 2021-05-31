@@ -93,6 +93,6 @@ config['random_rate'] = line_args.random_rate
 config['snapshot_to_load'] = line_args.state
 config['dump_full_snapshots'] = not line_args.no_snapshots
 config['input_dir'] = line_args.input
-
+config['output_file'] = line_args.out
 
 screen = None

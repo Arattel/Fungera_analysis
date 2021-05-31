@@ -48,7 +48,7 @@ class Queue:
 
     def kill_organisms(self):
         sorted_organisms = sorted(self.organisms, reverse=True)
-        ratio = int(len(self.organisms) * self.kill_organisms_ratio)
+        ratio = int(len(self.organisms) * c.config['kill_organisms_ratio'])
         for organism in sorted_organisms[:ratio]:
             organism.kill()
         self.organisms = sorted_organisms[ratio:]

@@ -6,11 +6,19 @@ import modules.organisms.organism_headless as o
 
 from tqdm import tqdm
 import numpy as  np
-from modules.summarization import get_prefixes, get_metrics_for_prefix, get_summarization_cycles, preprocess_records
+from modules.summarization import get_prefixes, get_metrics_for_prefix, get_summarization_cycles, preprocess_records, \
+    get_full_snapshot_cycles
 from modules.caching import GenomeCache
-from conf.config import Config
+from conf.config import Config, default_cache_files
 import os
 from fungera_headless import FungeraHeadless
+import pickle
+import sys
+
+sys.modules['modules.memory'] = m
+sys.modules['modules.queue'] = q
+sys.modules['modules.organism'] = o
+sys.modules['modules.common'] = c
 
 
 def organism_in_queue(queue, organism_id):
@@ -26,14 +34,10 @@ def life_length(genome, seed, mutation_rate, max_iterations):
     c.screen = None
     c.config['random_seed'] = seed
     c.config['random_rate'] = mutation_rate
-    # c.config['cycle_gap'] = 1
-    # c.config['memory_size'] = np.array((900, 900))
     print('Recreating memory...')
     m.memory = m.Memory()
-    print(m.memory.memory_map.shape)
     q.queue = q.Queue()
-
-    print(genome.shape)
+    f = FungeraHeadless(no_mutations=False)
 
     coords = np.array(c.config['memory_size']) // 2
     ip = np.copy(coords)
@@ -42,7 +46,7 @@ def life_length(genome, seed, mutation_rate, max_iterations):
     genome_size = f.load_genome_into_memory(
         genome, coords)
 
-    o.organism_class(coords, genome_size, ip=ip)
+    organism = o.organism_class(coords, genome_size, ip=ip)
     alive_time = 0
     for i in range(max_iterations):
         q.queue.cycle_all()
@@ -96,8 +100,8 @@ def is_replicator(genome, max_iterations: int = 50000):
         parent_organism = q.queue.organisms[0]
         child_organism = q.queue.organisms[1]
 
-        parent_organism_code = get_organism_commands(start=parent_organism.start, size=parent_organism.size)
-        child_organism_code = get_organism_commands(start=child_organism.start, size=child_organism.size)
+        parent_organism_code = f.get_organism_commands(start=parent_organism.start, size=parent_organism.size)
+        child_organism_code = f.get_organism_commands(start=child_organism.start, size=child_organism.size)
 
         if parent_organism_code.shape != child_organism_code.shape:
             return False
@@ -128,7 +132,7 @@ def get_data_for_snapshot(snapshot_path):
             record = {
                 'genome_size': genome.shape,
                 'num_organisms': num_entries,
-                'expected_life_length': get_expected_life_length(genome, 10),
+                'expected_life_length': get_expected_life_length(genome, 5),
                 'genotype': genome,
                 'is_replicator': is_replicator(genome)
             }
@@ -147,7 +151,7 @@ def get_data_for_snapshot(snapshot_path):
 
 
 if __name__ == '__main__':
-    gc = GenomeCache(path=Config.caching_path)
+    gc = GenomeCache(path=default_cache_files[c.instructions_set_name])
 
     input_dir = c.config['input_dir']
     snapshot_filenames = os.listdir(input_dir)
@@ -165,16 +169,24 @@ if __name__ == '__main__':
         metrics = preprocess_records(records=metrics)
 
         if metrics.shape[0] < 50:
-            summarization_cycles = metrics.cycles.tolist()
+            full_snapshot_cycles = get_full_snapshot_cycles(
+                prefix=prefix,
+                directory=input_dir
+            )
+            summarization_cycles = full_snapshot_cycles.tolist()
         else:
+            full_snapshot_cycles = get_full_snapshot_cycles(
+                prefix=prefix,
+                directory=input_dir
+            )
             summarization_cycles = get_summarization_cycles(
                 metrics_df=metrics, max_derivative_points=Config.max_derivative_points,
-                smoothing_window=Config.smoothing_window
+                smoothing_window=Config.smoothing_window, full_snapshot_cycles=full_snapshot_cycles
             )
             print(len(summarization_cycles))
         for cycle in summarization_cycles:
             snapshot_path: str = os.path.join(
-                f'{prefix}_cycle_{cycle + 1}.snapshot'
+                f'{prefix}_cycle_{cycle}.snapshot'
             )
             paths.append(snapshot_path)
 
