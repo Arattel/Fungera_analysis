@@ -3,3 +3,5 @@ pylint
 black
 toml
 windows-curses; sys_platform == 'win32'
+opencv-contrib-python==4.5.2.52
+opencv-python==4.5.2.52
