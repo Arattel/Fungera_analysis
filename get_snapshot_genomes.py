@@ -64,13 +64,14 @@ class SnapshotMap:
     def frommatrix(self, matrix):
         for i in range(len(matrix)):
             for j in range(len(matrix[0])):
-                self._putchar((i, j), matrix[i][j])
+                self._putchar((i, j), matrix[j][i])
 
     def draw_bounds(self, start, end):
+
         start = np.multiply(np.array(start), self.cellsize) + self.padding
         end = np.multiply(np.array(end), self.cellsize) + self.padding
-        self.image = cv2.rectangle(self.image, start, end, (0, 100, 0), -1)
-        self.image = cv2.rectangle(self.image, start, end, (255, 255, 255), 1)
+        self.image = cv2.rectangle(self.image, start[::-1], end[::-1], (0, 100, 0), -1)
+        self.image = cv2.rectangle(self.image, start[::-1], end[::-1], (255, 255, 255), 1)
 
 
 def get_organism_commands(start, size, memory):
@@ -88,13 +89,13 @@ if __name__ == '__main__':
         queue = state['queue']
         memory = state['memory']
 
-        snapshot = SnapshotMap(cells=memory.memory_map.shape)
+        snapshot = SnapshotMap(cells=np.array([memory.memory_map.shape[1], m.memory.memory_map.shape[0]]))
 
         # print(snapshot.image)
         # snapshot.show()
 
         for i, organism in enumerate(queue.organisms):
-            commands = snapshot.draw_bounds(organism.start, organism.size)
+            commands = snapshot.draw_bounds(organism.start, organism.start + organism.size)
         snapshot.frommatrix(memory.memory_map)
         cv2.imwrite(c.config['output_file'], snapshot.image)
 
