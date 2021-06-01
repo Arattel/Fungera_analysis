@@ -69,10 +69,8 @@ class SnapshotMap:
     def draw_bounds(self, start, end):
         start = np.multiply(np.array(start), self.cellsize) + self.padding
         end = np.multiply(np.array(end), self.cellsize) + self.padding
-        self.image = cv2.rectangle(self.image, start, end, (255, 0, 0), -1)
+        self.image = cv2.rectangle(self.image, start, end, (0, 100, 0), -1)
         self.image = cv2.rectangle(self.image, start, end, (255, 255, 255), 1)
-
-
 
 
 def get_organism_commands(start, size, memory):
