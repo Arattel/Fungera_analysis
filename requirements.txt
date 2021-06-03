@@ -5,3 +5,4 @@ toml
 windows-curses; sys_platform == 'win32'
 opencv-contrib-python==4.5.2.52
 opencv-python==4.5.2.52
+matplotlib @ file:///tmp/build/80754af9/matplotlib-base_1603378225747/work
